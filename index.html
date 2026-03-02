@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Estado de la biodiversidad de El Salvador</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    margin:0;
+    background:#f4f6f9;
+}
+header{
+    background:#0b5d4c;
+    color:white;
+    padding:16px 24px;
+}
+.container{
+    padding:20px;
+}
+.filters{
+    display:grid;
+    grid-template-columns: repeat(auto-fill,minmax(180px,1fr));
+    gap:10px;
+    margin-bottom:15px;
+}
+.filters input, .filters select{
+    padding:6px;
+    font-size:13px;
+}
+table{
+    width:100%;
+    border-collapse: collapse;
+    background:white;
+}
+th,td{
+    border:1px solid #ddd;
+    padding:6px;
+    font-size:13px;
+}
+th{
+    background:#e9ecef;
+}
+.cards{
+    display:grid;
+    grid-template-columns: repeat(auto-fill,minmax(200px,1fr));
+    gap:10px;
+    margin-bottom:15px;
+}
+.card{
+    background:white;
+    padding:12px;
+    border-left:5px solid #0b5d4c;
+}
+</style>
+</head>
+<body>
+
+<header>
+<h2>Estado de la biodiversidad de El Salvador</h2>
+<p>Dashboard de especies – versión de trabajo</p>
+</header>
+
+<div class="container">
+
+<div class="cards">
+    <div class="card">
+        <b>Total de registros</b><br>
+        <span id="totalRegistros"></span>
+    </div>
+    <div class="card">
+        <b>Total de investigadores</b><br>
+        <span id="totalInvestigadores"></span>
+    </div>
+    <div class="card">
+        <b>Registros con vacíos</b><br>
+        <span id="registrosVacios"></span>
+    </div>
+</div>
+
+<div class="filters">
+    <input type="text" id="fCientifico" placeholder="Nombre científico">
+    <input type="text" id="fComun" placeholder="Nombre común">
+    <input type="text" id="fNahuat" placeholder="Nombre Nahuat">
+    <select id="fMarn"></select>
+    <select id="fRlc"></select>
+    <select id="fCategoria"></select>
+    <select id="fCites"></select>
+    <select id="fDistribucion"></select>
+    <select id="fInvestigador"></select>
+</div>
+
+<table id="tabla">
+<thead>
+<tr>
+<th>No</th>
+<th>Nombre científico</th>
+<th>Nombre común</th>
+<th>Nahuat</th>
+<th>MARN 2025</th>
+<th>UICN RLC</th>
+<th>Categoría UICN</th>
+<th>CITES</th>
+<th>Distribución</th>
+<th>Investigador</th>
+<th>Comentarios</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+</div>
+
+<script>
+// Datos de ejemplo (estructura igual a tu base)
+const data = [
+ {no:1,cientifico:"Rhynchopsitta terrisi",comun:"Loro nuca amarilla",nahuat:"",marn:"En peligro",rlc:"Sí",categoria:"EN",cites:"I",distribucion:"Occidente",investigador:"Ana López",comentarios:"Falta abundancia"},
+ {no:2,cientifico:"Iguana iguana",comun:"Iguana verde",nahuat:"",marn:"Vulnerable",rlc:"Sí",categoria:"LC",cites:"II",distribucion:"Centro",investigador:"Carlos Martínez",comentarios:""}
+];
+
+const tbody = document.querySelector("#tabla tbody");
+
+const filtros = {
+ cientifico: fCientifico,
+ comun: fComun,
+ nahuat: fNahuat,
+ marn: fMarn,
+ rlc: fRlc,
+ categoria: fCategoria,
+ cites: fCites,
+ distribucion: fDistribucion,
+ investigador: fInvestigador
+};
+
+function cargarSelect(select, campo){
+    const valores = [...new Set(data.map(d=>d[campo]).filter(v=>v!=="" ))];
+    select.innerHTML = `<option value="">Todos</option>`;
+    valores.forEach(v=>{
+        const op = document.createElement("option");
+        op.value = v;
+        op.textContent = v;
+        select.appendChild(op);
+    });
+}
+
+function renderTabla(){
+    tbody.innerHTML="";
+    const filtrado = data.filter(d=>{
+        return (
+            d.cientifico.toLowerCase().includes(filtros.cientifico.value.toLowerCase()) &&
+            d.comun.toLowerCase().includes(filtros.comun.value.toLowerCase()) &&
+            d.nahuat.toLowerCase().includes(filtros.nahuat.value.toLowerCase()) &&
+            (filtros.marn.value==="" || d.marn===filtros.marn.value) &&
+            (filtros.rlc.value==="" || d.rlc===filtros.rlc.value) &&
+            (filtros.categoria.value==="" || d.categoria===filtros.categoria.value) &&
+            (filtros.cites.value==="" || d.cites===filtros.cites.value) &&
+            (filtros.distribucion.value==="" || d.distribucion===filtros.distribucion.value) &&
+            (filtros.investigador.value==="" || d.investigador===filtros.investigador.value)
+        );
+    });
+
+    filtrado.forEach(d=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+        <td>${d.no}</td>
+        <td>${d.cientifico}</td>
+        <td>${d.comun}</td>
+        <td>${d.nahuat}</td>
+        <td>${d.marn}</td>
+        <td>${d.rlc}</td>
+        <td>${d.categoria}</td>
+        <td>${d.cites}</td>
+        <td>${d.distribucion}</td>
+        <td>${d.investigador}</td>
+        <td>${d.comentarios}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function cargarIndicadores(){
+    totalRegistros.textContent = data.length;
+    totalInvestigadores.textContent = new Set(data.map(d=>d.investigador)).size;
+    registrosVacios.textContent = data.filter(d=>d.comentarios.trim()!=="" ).length;
+}
+
+cargarSelect(fMarn,"marn");
+cargarSelect(fRlc,"rlc");
+cargarSelect(fCategoria,"categoria");
+cargarSelect(fCites,"cites");
+cargarSelect(fDistribucion,"distribucion");
+cargarSelect(fInvestigador,"investigador");
+
+Object.values(filtros).forEach(f=>{
+    f.addEventListener("input",renderTabla);
+    f.addEventListener("change",renderTabla);
+});
+
+cargarIndicadores();
+renderTabla();
+
+</script>
+
+</body>
+</html>
