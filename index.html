@@ -471,7 +471,7 @@ const CONFIG = {
 
   // URL de la aplicación web de Apps Script (ver receptor_respuestas.gs).
   // Déjelo vacío para que el formulario solo descargue el registro.
-  ENDPOINT: 'https://script.google.com/macros/s/AKfycbzqve-oKjvqLLJDxzQ6Hu6bTLb4cXwQ6uUKYGus_5ZHLQo2OaZ0HKgoGtEv0NsUg8gH/exec'
+  ENDPOINT: 'https://script.google.com/macros/s/AKfycbyE9sgrPo2t6JFAhgoT_BEPs1Jr4A8XPiVc1mtEA2Oyaf-aJmyR4w9eA5lTpo0CVuWb/exec'
 };
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1213,8 +1213,31 @@ function mostrar(n){
 
 function atras(){ if(paso > 0) mostrar(paso - 1); }
 
-function siguiente(){
+async function siguiente(){
   if(!validar(paso)) return;
+
+  // Al salir de la primera sección se comprueba que el correo no tenga
+  // ya una respuesta registrada.
+  if(paso === 0){
+    const btn = $('#btn-siguiente');
+    const campo = document.querySelector('.campo[data-id="correo"]');
+    const correo = campo.querySelector('input').value.trim();
+    const textoPrevio = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Verificando…';
+    const repetido = await correoYaRegistrado(correo);
+    btn.disabled = false; btn.textContent = textoPrevio;
+
+    if(repetido){
+      campo.querySelector('.msg-error').textContent =
+        'Ya hay una respuesta registrada con este correo. Si necesita corregir o ampliar lo que envió, escríbanos a ' + CONFIG.CORREO + '.';
+      campo.classList.add('error');
+      $('#aviso-nav').textContent = 'Este correo ya respondió el formulario.';
+      $('#aviso-nav').classList.add('visible');
+      if(campo.scrollIntoView) campo.scrollIntoView({block:'center', behavior:'smooth'});
+      return;
+    }
+  }
+
   if(paso < ESQUEMA.length - 1) mostrar(paso + 1);
   else enviar();
 }
@@ -1485,7 +1508,37 @@ function confirmarFolio(folio){
 
 const esperar = ms => new Promise(r => setTimeout(r, ms));
 
+/**
+ * Pregunta al script si ese correo ya tiene una respuesta registrada.
+ * Se consulta al terminar la primera sección, para avisar antes de que
+ * la persona llene todo lo demás. Si no hay red, devuelve false y deja
+ * pasar: es preferible un duplicado que perder una respuesta legítima.
+ */
+function correoYaRegistrado(correo){
+  if(!CONFIG.ENDPOINT) return Promise.resolve(false);
+  return new Promise(resolve => {
+    const fn = 'correo_' + Math.random().toString(36).slice(2, 9);
+    const et = crear('script');
+    let cerrado = false;
+    const cerrar = r => {
+      if(cerrado) return;
+      cerrado = true;
+      delete window[fn];
+      et.remove();
+      resolve(r);
+    };
+    window[fn] = r => cerrar(!!(r && r.existe));
+    et.onerror = () => cerrar(false);
+    setTimeout(() => cerrar(false), 6000);
+    et.src = CONFIG.ENDPOINT + '?correo=' + encodeURIComponent(correo) + '&callback=' + fn;
+    document.body.appendChild(et);
+  });
+}
+
+let registroEnviado = false;
+
 async function enviar(){
+  if(registroEnviado) return;          // una sola respuesta por sesión
   const btn = $('#btn-siguiente');
   const datos = recolectar();
   let enviado = false, motivo = '', sinConfirmar = false;
@@ -1511,6 +1564,7 @@ async function enviar(){
     btn.disabled = false;
   }
 
+  if(enviado) registroEnviado = true;
   boleta(datos, enviado, motivo, sinConfirmar);
 }
 
@@ -1560,14 +1614,17 @@ function boleta(datos, enviado, motivo, sinConfirmar){
     html += '</dl>';
   });
 
+  // Volver solo tiene sentido si el envío falló y hay que reintentar.
+  // Si el registro quedó guardado, reabrir el formulario permitiría
+  // mandar una segunda respuesta y ensuciar la base.
   html += '</div><div class="barra-nav">'
-    + '<button type="button" class="btn-sec" id="btn-volver">Volver al formulario</button>'
+    + (enviado ? '' : '<button type="button" class="btn-sec" id="btn-volver">Volver al formulario</button>')
     + '<button type="button" class="btn" id="btn-descargar">Descargar mis respuestas</button>'
     + '<button type="button" class="btn-sec" id="btn-imprimir">Imprimir</button></div>';
 
   b.innerHTML = html;
   b.classList.add('activa');
-  $('#btn-volver').addEventListener('click', volverAlFormulario);
+  if($('#btn-volver')) $('#btn-volver').addEventListener('click', volverAlFormulario);
   $('#btn-descargar').addEventListener('click', () => descargar(datos));
   $('#btn-imprimir').addEventListener('click', () => window.print());
   window.scrollTo({top:0, behavior:'smooth'});
