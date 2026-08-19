@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Consulta a especialistas · Biodiversidad de El Salvador 2026 · MARN–UICN</title>
+<title>REVISIÓN · Consulta a especialistas · Biodiversidad de El Salvador 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -60,6 +60,14 @@
     font-size:15.5px;line-height:1.55;
     padding:0 18px 80px;
   }
+
+  /* ── aviso de versión de revisión ───────────────────────────── */
+  .aviso-revision{
+    background:#FBF3E2;border-bottom:1px solid #E0CDA4;color:#6B5218;
+    margin:0 -18px;padding:9px 18px;font-size:12.5px;line-height:1.45;
+  }
+  .aviso-revision b{color:#5A430F}
+  @media print{ .aviso-revision{display:none} }
 
   /* ── banda institucional ────────────────────────────────────── */
   .banda{
@@ -376,6 +384,12 @@
 </head>
 <body>
 
+<div class="aviso-revision">
+  <b>Versión de revisión.</b> Los campos obligatorios están desactivados y nada de lo
+  que escriba aquí se guarda ni se envía. Para responder de verdad, use el formulario
+  publicado.
+</div>
+
 <header class="banda">
   <div class="banda-fila">
     <div class="logos">
@@ -392,7 +406,7 @@
 
 <div class="cinta">
   <div class="cinta-fila">
-    <span class="cinta-titulo">Consulta a especialistas</span>
+    <span class="cinta-titulo">Consulta a especialistas · versión de revisión</span>
     <span class="folio" id="folio">—</span>
   </div>
   <div class="regla"><i id="barra"></i></div>
@@ -471,7 +485,9 @@ const CONFIG = {
 
   // URL de la aplicación web de Apps Script (ver receptor_respuestas.gs).
   // Déjelo vacío para que el formulario solo descargue el registro.
-  ENDPOINT: 'https://script.google.com/macros/s/AKfycbyE9sgrPo2t6JFAhgoT_BEPs1Jr4A8XPiVc1mtEA2Oyaf-aJmyR4w9eA5lTpo0CVuWb/exec'
+  // VERSIÓN DE REVISIÓN: sin envío. Nada de lo que se llene aquí llega a
+  // la hoja, para no ensuciar la base ni bloquear correos.
+  ENDPOINT: ''
 };
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1243,6 +1259,7 @@ async function siguiente(){
 }
 
 function validar(n){
+  return true;   // VERSIÓN DE REVISIÓN: se puede recorrer sin llenar nada
   const sec = ESQUEMA[n];
   const nodo = document.querySelector('.seccion[data-paso="' + n + '"]');
   let primerFallo = null;
@@ -1590,7 +1607,8 @@ function boleta(datos, enviado, motivo, sinConfirmar){
       + ' Descargue el archivo con el botón de abajo y envíelo a <a href="mailto:' + CONFIG.CORREO + '">'
       + CONFIG.CORREO + '</a>; sus respuestas no se pierden.</p>';
   }else{
-    cabeza = '<p>Su registro está completo. Descárguelo con el botón de abajo y envíelo a <a href="mailto:'
+    cabeza = '<p><b>Versión de revisión: nada se guardó.</b> Así se vería el comprobante '
+      + 'en el formulario real. Puede descargarlo para revisar el contenido.</p><p style="display:none">'
       + CONFIG.CORREO + '">' + CONFIG.CORREO + '</a>.</p>';
   }
 
